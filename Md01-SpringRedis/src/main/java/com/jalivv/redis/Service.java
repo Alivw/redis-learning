@@ -33,7 +33,7 @@ public class Service {
                 jedis.setex("compid:" + id, 20, Long.MAX_VALUE - times + "");
             } else {
                 //自增
-                Long incr = 10 - (Long.MAX_VALUE - jedis.incr("compid:" + id));
+                Long incr = this.times - (Long.MAX_VALUE - jedis.incr("compid:" + id));
                 business(id, incr);
             }
         } catch (JedisDataException e) {
