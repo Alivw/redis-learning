@@ -11,8 +11,17 @@ import redis.clients.jedis.exceptions.JedisDataException;
  */
 public class Service {
 
+    private String id;
+
+    private Integer times;
+
+    public Service(String str, Integer times) {
+        this.id = str;
+        this.times = times;
+    }
+
     // 控制单元
-    public void service(String id) {
+    public void service() {
         Jedis jedis = new Jedis("service.jalivv.com", 6379);
         jedis.auth("jalivvRedis");
         // 获取 值
@@ -21,14 +30,14 @@ public class Service {
         try {
             if (val == null || "".equals(val)) {
                 // 不存在 创建 值
-                jedis.setex("compid:" + id, 20, Long.MAX_VALUE - 10 + "");
+                jedis.setex("compid:" + id, 20, Long.MAX_VALUE - times + "");
             } else {
                 //自增
-                jedis.incr("compid:" + id);
-                business();
+                Long incr = 10 - (Long.MAX_VALUE - jedis.incr("compid:" + id));
+                business(id, incr);
             }
         } catch (JedisDataException e) {
-            System.out.println("使用已到达上限");
+            System.out.println(this.id + "使用已达上限");
         } finally {
             jedis.close();
         }
@@ -36,18 +45,23 @@ public class Service {
 
 
     // 业务操作
-    public void business() {
-        System.out.println("正在执行业务.....");
+    public void business(String id, Long incr) {
+        System.out.println("user：" + id + "is invoking service....." + "for times:" + incr);
     }
 }
 
 
 class MyThread extends Thread {
-    Service service = new Service();
+    public MyThread(String str, Integer times) {
+        this.service = new Service(str, times);
+    }
+
+    Service service;
+
     @Override
     public void run() {
         while (true) {
-            service.service("初级用户");
+            service.service();
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
@@ -58,8 +72,10 @@ class MyThread extends Thread {
     }
 }
 
-class Main{
+class Main {
     public static void main(String[] args) {
-        new MyThread().start();
+        new MyThread("初级用户", 5).start();
+        new MyThread("高级用户", 10).start();
+
     }
 }
